@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Demo Mock Recognition</title>
+</head>
+
+<body>
+    <h1>Demo Mock Recognition</h1>
+
+    <input type="file" id="fileInput">
+    <button onclick="recognize()">Recognize</button>
+
+    <p><b>Uploaded Image:</b></p>
+    <img id="uploadedImg" width="250">
+
+    <p><b>Matched Image:</b></p>
+    <img id="matchedImg" width="250">
+
+    <p id="error" style="color:red;"></p>
+
+<script>
+function recognize() {
+    const fileInput = document.getElementById("fileInput");
+    const file = fileInput.files[0];
+
+    if (!file) {
+        alert("Please choose an image!");
+        return;
+    }
+
+    let formData = new FormData();
+    formData.append("file", file);
+
+    fetch("/recognize", {
+        method: "POST",
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            document.getElementById("error").innerText = data.error;
+            return;
+        }
+
+        document.getElementById("error").innerText = "";
+        document.getElementById("uploadedImg").src = data.uploaded_image;
+        document.getElementById("matchedImg").src = data.matched_image;
+    })
+    .catch(err => {
+        document.getElementById("error").innerText = err;
+    });
+}
+</script>
+
+</body>
+</html>
