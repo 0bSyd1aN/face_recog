@@ -1,56 +1,614 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Demo Mock Recognition</title>
-</head>
-
-<body>
-    <h1>Demo Mock Recognition</h1>
-
-    <input type="file" id="fileInput">
-    <button onclick="recognize()">Recognize</button>
-
-    <p><b>Uploaded Image:</b></p>
-    <img id="uploadedImg" width="250">
-
-    <p><b>Matched Image:</b></p>
-    <img id="matchedImg" width="250">
-
-    <p id="error" style="color:red;"></p>
-
-<script>
-function recognize() {
-    const fileInput = document.getElementById("fileInput");
-    const file = fileInput.files[0];
-
-    if (!file) {
-        alert("Please choose an image!");
-        return;
-    }
-
-    let formData = new FormData();
-    formData.append("file", file);
-
-    fetch("/recognize", {
-        method: "POST",
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.error) {
-            document.getElementById("error").innerText = data.error;
-            return;
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Recognition System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-
-        document.getElementById("error").innerText = "";
-        document.getElementById("uploadedImg").src = data.uploaded_image;
-        document.getElementById("matchedImg").src = data.matched_image;
-    })
-    .catch(err => {
-        document.getElementById("error").innerText = err;
-    });
-}
-</script>
-
+        
+        :root {
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --dark: #1f2937;
+            --light: #f3f4f6;
+            --border: #e5e7eb;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 50px;
+            animation: slideDown 0.6s ease-out;
+        }
+        
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            font-weight: 800;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.95;
+            font-weight: 300;
+        }
+        
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+            backdrop-filter: blur(10px);
+            animation: slideUp 0.6s ease-out;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .card h2 {
+            color: var(--dark);
+            margin-bottom: 30px;
+            font-size: 1.8em;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 3px solid var(--primary);
+            padding-bottom: 15px;
+        }
+        
+        .card h2 span {
+            font-size: 1.4em;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 10px;
+            color: var(--dark);
+            font-weight: 600;
+            font-size: 0.95em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        input[type="text"],
+        input[type="file"] {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            background: white;
+        }
+        
+        input[type="text"]:focus,
+        input[type="file"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+        
+        button {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 14px 32px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            background: #d1d5db;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+        
+        button.success {
+            background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+            box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
+        }
+        
+        .status-box {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            border: 1px solid var(--border);
+        }
+        
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+            transition: all 0.3s ease;
+        }
+        
+        .status-item:last-child {
+            border-bottom: none;
+        }
+        
+        .status-item:hover {
+            transform: translateX(5px);
+        }
+        
+        .status-label {
+            font-weight: 600;
+            color: var(--dark);
+            font-size: 0.95em;
+        }
+        
+        .status-value {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 800;
+            font-size: 1.3em;
+        }
+        
+        .message {
+            padding: 16px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+            font-weight: 600;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        .message.success {
+            display: block;
+            background: #d1fae5;
+            color: #065f46;
+            border: 2px solid var(--success);
+        }
+        
+        .message.error {
+            display: block;
+            background: #fee2e2;
+            color: #7f1d1d;
+            border: 2px solid var(--danger);
+        }
+        
+        .results {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            padding: 25px;
+            border-radius: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .result-item {
+            padding: 16px;
+            background: white;
+            margin-bottom: 12px;
+            border-radius: 10px;
+            border-left: 5px solid var(--primary);
+            transition: all 0.3s ease;
+        }
+        
+        .result-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .result-item.matched {
+            border-left-color: var(--success);
+            background: #f0fdf4;
+        }
+        
+        .result-item.unmatched {
+            border-left-color: var(--danger);
+            background: #fef2f2;
+        }
+        
+        .result-name {
+            font-weight: 800;
+            font-size: 1.2em;
+            margin-bottom: 8px;
+            color: var(--dark);
+        }
+        
+        .result-confidence {
+            font-size: 0.9em;
+            color: #666;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .confidence-bar {
+            display: inline-block;
+            width: 100px;
+            height: 6px;
+            background: #e5e7eb;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success) 0%, var(--primary) 100%);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+        
+        .output-image {
+            width: 100%;
+            border-radius: 12px;
+            margin-top: 20px;
+            max-height: 450px;
+            object-fit: contain;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            border: 2px solid var(--border);
+        }
+        
+        .dataset-details {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            padding: 20px;
+            border-radius: 10px;
+            max-height: 350px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+        }
+        
+        .detail-person {
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9em;
+            color: var(--dark);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .detail-person:last-child {
+            border-bottom: none;
+        }
+        
+        .detail-count {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.85em;
+        }
+        
+        .loading {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        
+        .loading.active {
+            display: flex;
+        }
+        
+        .spinner {
+            border: 5px solid rgba(255, 255, 255, 0.2);
+            border-top: 5px solid white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        .loading p {
+            color: white;
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .card {
+                padding: 25px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 Face Recognition</h1>
+            <p>Advanced facial recognition powered by AI</p>
+        </div>
+        
+        <div class="content">
+            <!-- Training Section -->
+            <div class="card">
+                <h2><span>🚀</span>Train Model</h2>
+                
+                <div id="trainMessage" class="message"></div>
+                
+                <p style="color: #666; margin-bottom: 25px; font-size: 0.95em; line-height: 1.6;">
+                    📋 Auto-trains from <strong>dataset.csv</strong> and <strong>dataset/</strong> folder. One click to get started!
+                </p>
+                
+                <button id="trainBtn" class="success" style="margin-bottom: 30px;">
+                    ⚡ Auto-Train Model
+                </button>
+                
+                <div class="status-box">
+                    <div class="status-item">
+                        <span class="status-label">📸 Total Images</span>
+                        <span class="status-value" id="trainCount">0</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">👥 People</span>
+                        <span class="status-value" id="peopleCount">0</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">✓ Model Status</span>
+                        <span class="status-value" id="modelStatus">❌ Not Trained</span>
+                    </div>
+                </div>
+                
+                <label style="margin-top: 20px;">📊 Dataset Breakdown</label>
+                <div class="dataset-details" id="datasetDetails">
+                    <div style="padding: 20px; text-align: center; color: #999;">
+                        No data available
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recognition Section -->
+            <div class="card">
+                <h2><span>🎯</span>Recognize Faces</h2>
+                
+                <div id="recognizeMessage" class="message"></div>
+                
+                <div class="form-group">
+                    <label>📤 Upload Image</label>
+                    <input type="file" id="recognizeImage" accept="image/*">
+                </div>
+                
+                <button id="recognizeBtn">
+                    🔍 Recognize Faces
+                </button>
+                
+                <div id="resultsContainer" style="display: none; margin-top: 30px;">
+                    <label style="margin-bottom: 15px;">📊 Results</label>
+                    <div class="results" id="results"></div>
+                    <img id="outputImage" class="output-image" alt="Matched faces">
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p id="loadingText">Processing...</p>
+    </div>
+    
+    <script>
+        function showMessage(elementId, message, type) {
+            const elem = document.getElementById(elementId);
+            elem.textContent = message;
+            elem.className = `message ${type}`;
+            setTimeout(() => elem.className = 'message', 5000);
+        }
+        
+        function showLoading(show, text = "Processing...") {
+            document.getElementById('loading').classList.toggle('active', show);
+            document.getElementById('loadingText').textContent = text;
+        }
+        
+        function updateStatus() {
+            fetch('/status')
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('trainCount').textContent = data.total_images;
+                    document.getElementById('peopleCount').textContent = data.people_count;
+                    document.getElementById('modelStatus').textContent = 
+                        data.model_trained ? '✅ Trained' : '❌ Not Trained';
+                });
+            
+            fetch('/dataset-info')
+                .then(r => r.json())
+                .then(data => {
+                    let html = '';
+                    
+                    if (Object.keys(data.people).length > 0) {
+                        for (let [person, count] of Object.entries(data.people).sort()) {
+                            html += `
+                                <div class="detail-person">
+                                    <span>👤 ${person}</span>
+                                    <span class="detail-count">${count}</span>
+                                </div>
+                            `;
+                        }
+                    } else {
+                        html = '<div style="padding: 20px; text-align: center; color: #999;">No data</div>';
+                    }
+                    
+                    document.getElementById('datasetDetails').innerHTML = html;
+                });
+        }
+        
+        document.getElementById('trainBtn').addEventListener('click', async () => {
+            showLoading(true, 'Training model...');
+            
+            try {
+                const res = await fetch('/auto-train', { method: 'POST' });
+                const data = await res.json();
+                
+                if (res.ok) {
+                    showMessage('trainMessage', data.message, 'success');
+                    updateStatus();
+                } else {
+                    showMessage('trainMessage', data.message, 'error');
+                }
+            } catch (err) {
+                showMessage('trainMessage', 'Training failed', 'error');
+            } finally {
+                showLoading(false);
+            }
+        });
+        
+        document.getElementById('recognizeBtn').addEventListener('click', async () => {
+            const file = document.getElementById('recognizeImage').files[0];
+            
+            if (!file) {
+                showMessage('recognizeMessage', 'Please select an image', 'error');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('image', file);
+            
+            showLoading(true, 'Recognizing faces...');
+            
+            try {
+                const res = await fetch('/recognize', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                
+                if (res.ok) {
+                    const resultsDiv = document.getElementById('results');
+                    resultsDiv.innerHTML = `
+                        <div style="padding: 12px; background: #f0fdf4; border-left: 4px solid var(--success); border-radius: 8px; margin-bottom: 15px; font-weight: 600; color: #065f46;">
+                            ✓ Found ${data.total_faces} face(s)
+                        </div>
+                    `;
+                    
+                    data.results.forEach((result, i) => {
+                        const matched = result.matched ? 'matched' : 'unmatched';
+                        const confidence = result.confidence;
+                        const fillPercent = Math.min(confidence, 100);
+                        
+                        resultsDiv.innerHTML += `
+                            <div class="result-item ${matched}">
+                                <div class="result-name">${result.name}</div>
+                                <div class="result-confidence">
+                                    Confidence: ${confidence}%
+                                    <div class="confidence-bar">
+                                        <div class="confidence-fill" style="width: ${fillPercent}%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    document.getElementById('outputImage').src = data.matched_image;
+                    document.getElementById('resultsContainer').style.display = 'block';
+                } else {
+                    showMessage('recognizeMessage', data.error, 'error');
+                }
+            } catch (err) {
+                showMessage('recognizeMessage', 'Recognition failed', 'error');
+            } finally {
+                showLoading(false);
+            }
+        });
+        
+        updateStatus();
+        setInterval(updateStatus, 5000);
+    </script>
 </body>
 </html>
